@@ -601,6 +601,9 @@ class PluginEscaladeTicket {
       $fields['_users_id_requester'] = 0;
       $fields['status']              = CommonITILObject::INCOMING;
 
+      // Don't keep due date
+      unset($fields['due_date']);
+      unset($fields['locations_id']);
 
       /*var_dump($fields);
       exit;*/
@@ -608,18 +611,6 @@ class PluginEscaladeTicket {
       //create new ticket (duplicate from previous)
       if (! $newID = $ticket->add($fields)) {
          echo "{\"success\":false, \"message\":\"".__("Error : adding new ticket", "escalade")."\"}";
-         exit;
-      }
-
-      //add link between them
-      $ticket_ticket = new Ticket_Ticket;
-      if (!$ticket_ticket->add(array(
-         'tickets_id_1' => $tickets_id,
-         'tickets_id_2' => $newID,
-         'link'         => Ticket_Ticket::LINK_TO
-      ))) {
-         echo "{\"success\":false, \"message\":\"".
-               __("Error : adding link between the two tickets", "escalade")."\"}";
          exit;
       }
 
@@ -637,12 +628,12 @@ class PluginEscaladeTicket {
          exit;
       }
 
-      //add actors to the new ticket (without assign)
+      //add actors to the new ticket (only assign)
       //users
       $query_users = "INSERT INTO glpi_tickets_users
       SELECT '' AS id, $newID as tickets_id, users_id, type, use_notification, alternative_email
       FROM glpi_tickets_users
-      WHERE tickets_id = $tickets_id AND type != 2";
+      WHERE tickets_id = $tickets_id AND type = 2"; // AND type != 2
       if (!$res = $DB->query($query_users)) {
          echo "{\"success\":false, \"message\":\"".__("Error : adding actors (user)", "escalade")."\"}";
          exit;
@@ -651,7 +642,7 @@ class PluginEscaladeTicket {
       $query_groups = "INSERT INTO glpi_groups_tickets
       SELECT '' AS id, $newID as tickets_id, groups_id, type
       FROM glpi_groups_tickets
-      WHERE tickets_id = $tickets_id AND type != 2";
+      WHERE tickets_id = $tickets_id AND type = 2"; // AND type != 2
       if (!$res = $DB->query($query_groups)) {
          echo "{\"success\":false, \"message\":\"".__("Error : adding actors (group)", "escalade")."\"}";
          exit;
